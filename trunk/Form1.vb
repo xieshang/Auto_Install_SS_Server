@@ -31,7 +31,8 @@ Public Class Form1
     Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
         Me.Top = 1
         webform.Hide()
-
+        Mweb_Reg(webform.WebBrow)
+        DGV_Reg(ssr_dgv)
     End Sub
 
     Private Sub Form1_FormClosing(ByVal sender As System.Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles MyBase.FormClosing
@@ -42,13 +43,6 @@ Public Class Form1
         End Try
     End Sub
 
-    Sub sleepdo(ByVal t As Long)
-
-        For i = 0 To t - 1
-            Thread.Sleep(1)
-            Application.DoEvents()
-        Next
-    End Sub
 
 
 
@@ -115,4 +109,56 @@ Public Class Form1
 
 
 
+    Private Sub Button1_Click_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+        Dim str(100) As String
+        Dim result As String = ""
+        Dim i As Integer = 0
+        Dim status As Boolean = False
+
+        str(i) = "OpenSite|https://www.dou-bi.co/sszhfx/"
+        i += 1
+        str(i) = "While"
+        i += 1
+        str(i) = "Html_SetPoint|<td width=""18%"">"
+        i += 1
+        str(i) = "DGV_AddLine"
+        i += 1
+        str(i) = "Html_GetBetween|<strong>,</strong>"
+        i += 1
+        str(i) = "DGV_CellSet|5"
+        i += 1
+        str(i) = "Html_GetBetween|<td width=""15%"">,</td>"
+        i += 1
+        str(i) = "DGV_CellSet|1"
+        i += 1
+        str(i) = "Html_GetBetween|"">,</td>"
+        i += 1
+        str(i) = "DGV_CellSet|2"
+        i += 1
+        str(i) = "Html_GetBetween|"">,</td>"
+        i += 1
+        str(i) = "DGV_CellSet|3"
+        i += 1
+        str(i) = "Html_GetBetween|"">,</td>"
+        i += 1
+        str(i) = "DGV_CellSet|4"
+        i += 1
+        str(i) = "EndWhile"
+
+
+
+
+        ProgressBar.Value = 0
+        ProgressBar.Minimum = 0
+        ProgressBar.Maximum = i
+        For j = 0 To i
+            status = Mweb_RunCmd(str(j), result)
+            If status = False Then
+                Exit Sub
+            End If
+            ProgressBar.Value = j
+            Application.DoEvents()
+        Next
+
+    End Sub
 End Class
