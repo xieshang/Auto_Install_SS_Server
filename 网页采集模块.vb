@@ -50,8 +50,6 @@ Module 网页采集模块
 
         Try
 
-            LogDebug("******************* " + cmdstr + " *******************")
-
             Select Case cmd
                 Case "OpenSite".ToUpper                         '打开新网页
                     Mweb_RunCmd = Mweb_OpenSite(config(0))
@@ -107,7 +105,6 @@ Module 网页采集模块
 
     Public Function Mweb_OpenSite(ByVal url As String) As Boolean
         Try
-            LogDebug("尝试打开网页:" + url)
             webhtml = ""
             pageready = False
             wbrow.Navigate(url)
@@ -119,11 +116,9 @@ Module 网页采集模块
             'End While
             WaitForPageLoad()
 
-            LogDebug("【打开成功】")
             webhtml = wbrow.DocumentText
             Return True
         Catch ex As Exception
-            LogDebug("【打开失败】")
             Return False
         End Try
 
@@ -134,18 +129,14 @@ Module 网页采集模块
         If webhtml = "" Or webhtml = Nothing Then
             webhtml = wbrow.DocumentText
         End If
-        LogDebug("设置HTML缓存起始点:" + str)
         If webhtml.IndexOf(str) >= 0 Then
             webhtml = Mid(webhtml, webhtml.IndexOf(str) + str.Length + 1)
-            LogDebug("【找到起始点】")
             Return True
         End If
-        LogDebug("【未找到起始点】")
         Return False
     End Function
 
     Public Function Mweb_Html_GetBetween(ByVal str_start As String, ByVal str_end As String) As String
-        LogDebug("采集内容 介于:" + str_start + "_" + str_end)
         If webhtml = "" Or webhtml = Nothing Then
             webhtml = wbrow.DocumentText
         End If
@@ -155,7 +146,6 @@ Module 网页采集模块
         Mweb_Html_SetPoint(str_start)
         Dim len As Long = webhtml.IndexOf(str_end)
         Mweb_Html_GetBetween = Mid(webhtml, 1, len)
-        LogDebug("【截取内容】:" + Mweb_Html_GetBetween)
         Mweb_Html_SetPoint(str_end)
     End Function
 

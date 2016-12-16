@@ -40,6 +40,7 @@ Public Class Form1
         DGV_Reg(ssr_dgv)
         'Control.CheckForIllegalCrossThreadCalls = False '允许多线程调用控件
         loadfilelist(DataGridView1, Application.StartupPath + "\rules")
+        加密.SelectedIndex = 2
     End Sub
 
     Private Sub Form1_FormClosing(ByVal sender As System.Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles MyBase.FormClosing
@@ -88,7 +89,6 @@ Public Class Form1
             For Each i In webform.WebBrow.Document.GetElementsByTagName("h2")
 
                 For Each a In i.GetElementsByTagName("A")
-                    'log.Text += vbCrLf + "*********************" + vbCrLf + a.OuterText + "=" + a.GetAttribute("href")
 
                     DGV.Rows.Add()
                     DGV.Rows(DGV.Rows.Count - 1).Cells(0).Value = a.OuterText
@@ -161,6 +161,9 @@ Public Class Form1
 #Region "采集"
 
     Sub loadfilelist(ByVal dg As DataGridView, ByVal dir_addr As String)
+        If FileIO.FileSystem.DirectoryExists(dir_addr) = False Then
+            IO.Directory.CreateDirectory(dir_addr)
+        End If
         For Each f In IO.Directory.GetFiles(dir_addr)
             dg.Rows.Add(f)
         Next
@@ -188,7 +191,7 @@ Public Class Form1
     Sub startthread()
         Dim str As String
         For i = 0 To DataGridView1.Rows.Count - 1
-            str = ReadFile(DataGridView1.Rows(i).Cells(0).Value)
+            str = IO.File.ReadAllText(DataGridView1.Rows(i).Cells(0).Value)
             Me.BeginInvoke(New Dgt_str(AddressOf RunCmd), str)
         Next
         mythread.Abort()
@@ -292,13 +295,68 @@ Public Class Form1
             Exit Sub
         End If
         Dim cfg As String = FileIO.FileSystem.ReadAllText(Application.StartupPath + "\gui-config.json")
+        'FileIO.FileSystem.DeleteFile(Application.StartupPath + "\gui-config.json")
         Dim cfgnew As String = ""
         Dim sercfg As String = ""
         cfgnew = Mid(cfg, 1, cfg.IndexOf("[") + 1)
         cfgnew += Mid(cfg, cfg.IndexOf("]"))
 
+        '保存采集的数据
+        If ssr_dgv.RowCount > 0 Then
+            For i = 0 To ssr_dgv.RowCount - 1
+                sercfg += "{" + vbLf + """remarks"" : """"," + vbLf _
+                 + """server"" : """ + ssr_dgv.Rows(i).Cells(0).Value + """," + vbLf _
+                 + """server_port"" : " + ssr_dgv.Rows(i).Cells(1).Value + "," + vbLf _
+                 + """server_udp_port"" : 0," + vbLf _
+                 + """password"" : """ + ssr_dgv.Rows(i).Cells(2).Value + """," + vbLf _
+                 + """method"" : """ + ssr_dgv.Rows(i).Cells(3).Value + """," + vbLf _
+                 + """obfs"" : ""plain”"," + vbLf _
+                 + """obfsparam"" : """"," + vbLf _
+                 + """remarks_base64"" : """"," + vbLf _
+                 + """group"" : """"," + vbLf _
+                 + """udp_over_tcp"" : false," + vbLf _
+                 + """protocol"" : ""origin""," + vbLf _
+                 + """enable"" : true," + vbLf _
+                 + "}"
+
+                If i <> ssr_dgv.RowCount - 1 Then
+                    sercfg += ","
+                End If
+            Next
+        End If
 
 
+        '保存自建服务器数据
+        '保存采集的数据
+        If DGV_SSR.RowCount > 0 Then
+            For i = 0 To DGV_SSR.RowCount - 1
+                sercfg += "{" + vbLf + """remarks"" : """"," + vbLf _
+                 + """server"" : """ + DGV_SSR.Rows(i).Cells(0).Value + """," + vbLf _
+                 + """server_port"" : " + DGV_SSR.Rows(i).Cells(1).Value + "," + vbLf _
+                 + """server_udp_port"" : 0," + vbLf _
+                 + """password"" : """ + 密码.Text + """," + vbLf _
+                 + """method"" : """ + 加密.Text + """," + vbLf _
+                 + """obfs"" : ""plain”"," + vbLf _
+                 + """obfsparam"" : """"," + vbLf _
+                 + """remarks_base64"" : """"," + vbLf _
+                 + """group"" : """"," + vbLf _
+                 + """udp_over_tcp"" : false," + vbLf _
+                 + """protocol"" : ""origin""," + vbLf _
+                 + """enable"" : true," + vbLf _
+                 + "}"
+
+                If i <> DGV_SSR.RowCount - 1 Then
+                    sercfg += ","
+                End If
+            Next
+        End If
+
+
+        '写入文件
+        cfgnew = Mid(cfg, 1, cfg.IndexOf("[") + 1)
+        cfgnew += sercfg + Mid(cfg, cfg.IndexOf("],"))
+
+        FileIO.FileSystem.WriteAllText(Application.StartupPath + "\gui-config.json", cfgnew, False)
     End Sub
 
 
