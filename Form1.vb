@@ -39,7 +39,7 @@ Public Class Form1
         Mweb_Reg(webform.WebBrow, ProBar)
         DGV_Reg(ssr_dgv)
         'Control.CheckForIllegalCrossThreadCalls = False '允许多线程调用控件
-
+        loadfilelist(DataGridView1, Application.StartupPath + "\rules")
     End Sub
 
     Private Sub Form1_FormClosing(ByVal sender As System.Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles MyBase.FormClosing
@@ -50,18 +50,24 @@ Public Class Form1
         End Try
     End Sub
 
+    Private Sub Button1_Click_2(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+        saveSSRconfig()
+    End Sub
 
-
+#Region ""
 
     Private Sub login_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles login.Click
+        Dim i As System.Windows.Forms.HtmlElement
+        Dim a As System.Windows.Forms.HtmlElement
 
-
+        DGV.Rows.Clear()
         webform.WebBrow.Navigate("https://app.arukas.io")
-        WaitForPageLoad()
+        WaitForPageLoad("div")
+
+
 
         '判断所处界面
         Try
-            Dim i As System.Windows.Forms.HtmlElement
             For Each i In webform.WebBrow.Document.GetElementsByTagName("h2")
                 If i.OuterText = "Login" Then
                     'MsgBox("非控制面板")
@@ -79,14 +85,15 @@ Public Class Form1
 
         '查找信息
         Try
-            Dim i As System.Windows.Forms.HtmlElement
-            Dim a As System.Windows.Forms.HtmlElement
             For Each i In webform.WebBrow.Document.GetElementsByTagName("h2")
 
                 For Each a In i.GetElementsByTagName("A")
-                    log.Text += vbCrLf + "*********************" + vbCrLf + a.OuterText + "=" + Mid(webform.WebBrow.Url.ToString, 1, webform.WebBrow.Url.ToString.Length - 1) + a.GetAttribute("href")
+                    'log.Text += vbCrLf + "*********************" + vbCrLf + a.OuterText + "=" + a.GetAttribute("href")
+
                     DGV.Rows.Add()
                     DGV.Rows(DGV.Rows.Count - 1).Cells(0).Value = a.OuterText
+                    DGV.Rows(DGV.Rows.Count - 1).Cells(1).Value = a.GetAttribute("href")
+
                 Next
 
             Next
@@ -94,6 +101,38 @@ Public Class Form1
 
 
         End Try
+
+        ''读取app页面信息
+        For k = 0 To DGV.Rows.Count - 1
+            Dim url As String = "https://app.arukas.io" + DGV.Rows(k).Cells(1).Value
+            webform.WebBrow.Navigate(url)
+            WaitForPageLoad("ul")
+            For Each i In webform.WebBrow.Document.GetElementsByTagName("ul")
+                If i.GetAttribute("classname") = "list-unstyled c-list-compact" Then
+                    Dim item(0) As String
+                    Dim rep_str As String = Mid(i.OuterHtml, i.OuterHtml.IndexOf("<li>"))
+                    While rep_str.IndexOf("href=") > 0
+                        item(item.Length - 1) = Mid(rep_str, rep_str.IndexOf(""">http://") + """>http://".Length + 1, rep_str.IndexOf("/tcp") - rep_str.IndexOf(""">http://") - "/tcp)".Length - 4)
+                        item(item.Length - 1) = item(item.Length - 1).Replace(vbCrLf, "").Replace(vbLf, "").Replace("</a>", "").Replace(" ", "").Replace("<span>", "").Replace(")", "")
+                        rep_str = Mid(rep_str, rep_str.IndexOf("</li>") + "</li>".Length)
+                        Dim port As String = item(item.Length - 1).Split("(")(1)
+                        If port <> "80" And port <> "22" And port <> "21" Then
+                            log.Text += vbCrLf + item(item.Length - 1)
+                            DGV_SSR.Rows.Add()
+                            DGV_SSR.Rows(DGV_SSR.Rows.Count - 1).Cells(0).Value = item(item.Length - 1).Split(":")(0)
+                            DGV_SSR.Rows(DGV_SSR.Rows.Count - 1).Cells(1).Value = item(item.Length - 1).Split(":")(1).Split("(")(0)
+                            DGV_SSR.Rows(DGV_SSR.Rows.Count - 1).Cells(2).Value = item(item.Length - 1).Split(":")(1).Split("(")(1)
+
+                        End If
+
+                        ReDim Preserve item(item.Length)
+                    End While
+
+                End If
+            Next
+        Next
+
+
     End Sub
 
     Dim webthread As Thread
@@ -113,7 +152,21 @@ Public Class Form1
     End Sub
 
 
+
+
+
+#End Region
+
+
 #Region "采集"
+
+    Sub loadfilelist(ByVal dg As DataGridView, ByVal dir_addr As String)
+        For Each f In IO.Directory.GetFiles(dir_addr)
+            dg.Rows.Add(f)
+        Next
+    End Sub
+
+
     Private Sub DataGridView1_DragEnter(ByVal sender As System.Object, ByVal e As System.Windows.Forms.DragEventArgs) Handles DataGridView1.DragEnter
         e.Effect = DragDropEffects.Link '接受拖放数据，启用拖放效果
     End Sub
@@ -130,23 +183,6 @@ Public Class Form1
         mythread = New Thread(AddressOf startthread)
         mythread.Start()
     End Sub
-
-#End Region
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     Sub startthread()
@@ -199,9 +235,9 @@ Public Class Form1
         'ReDim Preserve cmdlist(i)
 
         If ProBar IsNot Nothing Then
-            ProBar.Value = 0
             ProBar.Minimum = 0
             ProBar.Maximum = i
+            ProBar.Value = 1
         End If
         i = cmdlist.Length
         Dim result As String = ""
@@ -245,5 +281,28 @@ Public Class Form1
             Application.DoEvents()
         Next
     End Sub
+
+#End Region
+
+
+#Region "SSR"
+    Sub saveSSRconfig()
+        If FileIO.FileSystem.FileExists(Application.StartupPath + "\gui-config.json") = False Then
+            MsgBox("软件未与SSR放在同一目录下")
+            Exit Sub
+        End If
+        Dim cfg As String = FileIO.FileSystem.ReadAllText(Application.StartupPath + "\gui-config.json")
+        Dim cfgnew As String = ""
+        Dim sercfg As String = ""
+        cfgnew = Mid(cfg, 1, cfg.IndexOf("[") + 1)
+        cfgnew += Mid(cfg, cfg.IndexOf("]"))
+
+
+
+    End Sub
+
+
+
+#End Region
 
 End Class

@@ -17,7 +17,6 @@ Module 网页采集模块
 
     Public Sub Mweb_Reg(ByVal wb As WebBrowser, Optional ByVal bar As ProgressBar = Nothing)
         wbrow = wb
-        wbrow.Navigate("about:blank")
         ProgBar = bar
     End Sub
 
@@ -227,13 +226,58 @@ Module 网页采集模块
 #End Region
 
 
+
+    Function FindHtmlElement(ByVal FindText As String, ByVal doc As HtmlDocument, ByVal cTagName As String, ByVal cGetAttribute As String, Optional ByVal StrictMatching As Boolean = False) As HtmlElement
+        'cTagName：检索具有指定 html 标记的元素，标记需要输入完整的，缺省时查找所有。
+        '例如：<input class="button" type="submit" value=提交 style="cursor:hand">，不能只输入"i"，需要输入"input"
+        'cGetAttribute ：比较的属性类型，取值为：Id、InnerText、Name、title、classname、value、
+        'Id、InnerText可以通过GetAttribute获取，也可以通过HtmlElement.Id、HtmlElement.InnerText获取，所以代码简化为用GetAttribute获取。
+        'doc：Webbrowser1.Document
+        'GetAttribute("classname")   '例如显示class="commonTable"的值commonTable
+        'StrictMatching：True严格匹配FindText
+
+        Dim i, k As Integer
+
+        FindHtmlElement = Nothing
+
+        For i = 0 To doc.All.Count - 1
+            If InStr(doc.All.Item(i).GetAttribute(cGetAttribute), FindText) > 0 _
+                And (Not StrictMatching Or InStr(FindText, doc.All.Item(i).GetAttribute(cGetAttribute)) > 0) And (cTagName = "" Or LCase(cTagName) = LCase(doc.All.Item(i).TagName)) Then
+                FindHtmlElement = doc.All.Item(i)
+                Exit Function
+            End If
+        Next
+
+        For k = 0 To doc.Window.Frames.Count - 1
+            For i = 0 To doc.Window.Frames.Item(k).Document.All.Count - 1
+                If InStr(doc.Window.Frames.Item(k).Document.All.Item(i).GetAttribute(cGetAttribute), FindText) > 0 And (Not StrictMatching Or InStr(FindText, doc.Window.Frames.Item(k).Document.All.Item(i).GetAttribute(cGetAttribute)) > 0) And (cTagName = "" Or LCase(cTagName) = LCase(doc.Window.Frames.Item(k).Document.All.Item(i).TagName)) Then
+                    FindHtmlElement = doc.Window.Frames.Item(k).Document.All.Item(i)
+                    Exit Function
+                End If
+            Next
+
+            '递归调用
+            If FindHtmlElement Is Nothing Then
+                FindHtmlElement = FindHtmlElement(FindText, doc.Window.Frames.Item(k).Document, cTagName, cGetAttribute, StrictMatching)
+            End If
+        Next
+
+    End Function
+
+
 #Region "Page Loading Functions"
     Private Property pageready As Boolean = False
-    Public Sub WaitForPageLoad()
+    Public Sub WaitForPageLoad(Optional ByVal str As String = "")
         AddHandler wbrow.DocumentCompleted, New WebBrowserDocumentCompletedEventHandler(AddressOf PageWaiter)
         While Not pageready
             Application.DoEvents()
         End While
+        '等待动态加载完成
+        If str <> "" Then
+            While wbrow.Document.GetElementsByTagName(str).Count = 0
+                Application.DoEvents()
+            End While
+        End If
         pageready = False
     End Sub
 
