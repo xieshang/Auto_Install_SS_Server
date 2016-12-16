@@ -33,6 +33,7 @@ Partial Class web
         Me.WebBrow.Location = New System.Drawing.Point(1, 1)
         Me.WebBrow.MinimumSize = New System.Drawing.Size(20, 20)
         Me.WebBrow.Name = "WebBrow"
+        Me.WebBrow.ScriptErrorsSuppressed = True
         Me.WebBrow.Size = New System.Drawing.Size(1187, 613)
         Me.WebBrow.TabIndex = 3
         '
