@@ -52,6 +52,7 @@ Public Class Form1
     End Sub
 
     Private Sub Button1_Click_2(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+
         saveSSRconfig()
     End Sub
 
@@ -190,10 +191,16 @@ Public Class Form1
 
     Sub startthread()
         Dim str As String
-        For i = 0 To DataGridView1.Rows.Count - 1
-            str = IO.File.ReadAllText(DataGridView1.Rows(i).Cells(0).Value)
-            Me.BeginInvoke(New Dgt_str(AddressOf RunCmd), str)
-        Next
+        Try
+            For i = 0 To DataGridView1.Rows.Count - 1
+                str = IO.File.ReadAllText(DataGridView1.Rows(i).Cells(0).Value)
+                Me.BeginInvoke(New Dgt_str(AddressOf RunCmd), str)
+                Thread.Sleep(10000)
+                Mweb_free()
+            Next
+        Catch ex As Exception
+
+        End Try
         mythread.Abort()
     End Sub
 
