@@ -83,6 +83,7 @@ Module 网页采集模块
     End Function
 
     Public Sub Mweb_free()
+        wbrow.Navigate("about:blank")
         webhtml = ""
     End Sub
 
